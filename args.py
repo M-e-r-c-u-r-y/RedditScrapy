@@ -117,4 +117,3 @@ args.__dict__["link_comments_columns"] = ["permalink", "parent_id", "submission"
 args.__dict__["cleanse_comments_columns"] = ["body"]
 
 args.__dict__["output_file_names"] = ["submissions_", "comments_"]
-

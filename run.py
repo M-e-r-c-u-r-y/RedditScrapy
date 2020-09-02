@@ -1,22 +1,29 @@
-import praw
-from pprint import pprint
-from args import args
-from tqdm import tqdm
-import pandas as pd
-import utils
-import os.path
+import concurrent.futures
 import csv
 import itertools
-import concurrent.futures
+import os.path
 import time
 from datetime import datetime
+from pprint import pprint
+
+import pandas as pd
+import praw
+
+# from tqdm import tqdm
+
+import utils
+from args import args
 
 # https://www.reddit.com/r/redditdev/comments/7muatr/praw_rate_limit_headers/drww09u
 # No rate limits for reading the data
 saved_details = {}
 t1 = time.perf_counter()
-fetch_start = str(int(datetime.utcnow().timestamp()))
-headers = "RedditScrapyApp"
+# Day,Month,Year,Hour,Minute,Second
+pattern = f"%d-%m-%Y-%H-%M-%S"
+fetch_start = datetime.utcnow()
+fetch_start_utc = float(int(fetch_start.timestamp()))
+fetch_start = fetch_start.strftime(pattern)
+headers = "ExampleApp"
 reddit = praw.Reddit("bot1", user_agent=headers)
 print(f"Reddit Read only mode: {reddit.read_only}")
 print("*" * 80)
@@ -35,8 +42,14 @@ output_path = args.output_path
 if not os.path.isdir(output_path):
     os.mkdir(output_path)
 
-submissions_file_name = output_path + args.output_file_names[0] + fetch_start + ".csv"
-comments_file_name = output_path + args.output_file_names[1] + fetch_start + ".csv"
+fetch_type = args.submissions_type + "_"
+
+submissions_file_name = (
+    output_path + args.output_file_names[0] + fetch_type + fetch_start + ".csv"
+)
+comments_file_name = (
+    output_path + args.output_file_names[1] + fetch_type + fetch_start + ".csv"
+)
 submission_columns = args.submission_columns
 cleanse_submission_columns = args.cleanse_submission_columns
 
@@ -94,12 +107,12 @@ if comments:
     print(f"Cleansing comments Finished in {t5-t4} seconds")
     total_comments = len(comments_df_dict["permalink"])
     res = pd.DataFrame.from_dict(comments_df_dict)
-    res["fetched_utc"] = float(fetch_start)
+    res["fetched_utc"] = fetch_start_utc
     res.to_csv(comments_file_name, index=False, index_label="permalink")
     saved_details["comments"] = comments_file_name
 
 res = pd.DataFrame.from_dict(submissions_df_dict)
-res["fetched_utc"] = float(fetch_start)
+res["fetched_utc"] = fetch_start_utc
 res.to_csv(submissions_file_name, index=False, index_label="permalink")
 saved_details["submissions"] = submissions_file_name
 

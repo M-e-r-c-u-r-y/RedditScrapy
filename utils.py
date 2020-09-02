@@ -68,7 +68,7 @@ def cleanse_submissions(
             if temp is None:
                 temp = "None"
             submissions_df_dict[col].append(temp)
-    if comments == False:
+    if comments is False:
         submissions_to_crawl = None
     data = []
     for link in submissions_df_dict["permalink"]:
@@ -120,4 +120,3 @@ def cleanse_comments(
 
     cleanse_text(cleanse_comments_columns, comments_df_dict)
     return comments_df_dict
-
