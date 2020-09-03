@@ -9,8 +9,6 @@ from pprint import pprint
 import pandas as pd
 import praw
 
-# from tqdm import tqdm
-
 import utils
 from args import args
 
