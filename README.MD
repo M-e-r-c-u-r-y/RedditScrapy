@@ -1,6 +1,6 @@
-# ScrapeReddit
+# RedditScrapy
 
-ScrapeReddit is a Python library for extracting post data from reddit.
+RedditScrapy is a Python library for extracting post data from reddit.
 It uses ``praw 6.5.1``.
 
 ## Configuration
