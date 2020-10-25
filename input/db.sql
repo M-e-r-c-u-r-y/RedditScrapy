@@ -1,0 +1,21 @@
+CREATE TABLE IF NOT EXISTS "comments" (
+    "id" SERIAL NOT NULL PRIMARY KEY,
+    "permalink" VARCHAR(300) NOT NULL,
+    "author" VARCHAR(50) NOT NULL,
+    "score" INT NOT NULL,
+    "body" VARCHAR(10000) NOT NULL,
+    "parent_id" VARCHAR(300) NOT NULL,
+    "submission" VARCHAR(300) NOT NULL,
+    "created_utc" TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+    "fetched_utc" TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP
+        );
+CREATE TABLE IF NOT EXISTS "posts" (
+    "id" SERIAL NOT NULL PRIMARY KEY,
+    "permalink" VARCHAR(300) NOT NULL,
+    "author" VARCHAR(50) NOT NULL,
+    "score" INT NOT NULL,
+    "selftext" VARCHAR(40000) NOT NULL,
+    "title" VARCHAR(300) NOT NULL,
+    "created_utc" TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP,
+    "fetched_utc" TIMESTAMP NOT NULL  DEFAULT CURRENT_TIMESTAMP
+);

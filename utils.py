@@ -1,4 +1,10 @@
 import re
+import asyncio
+import asyncpg
+import datetime
+
+reddit_url = "https://www.reddit.com"
+reddit_user = "https://www.reddit.com/user/"
 
 
 def cleanse_text(columns=None, df_dict=None):
@@ -44,8 +50,7 @@ def fetch_submissions(
             )
     else:
         raise NotImplementedError(
-            f'Invalid argument submissions_type="{submissions_type}" \n'
-            f"It must be one of: controversial, hot, new, random_rising, rising, top"
+            f"{submissions_type} is an invalid argument for --submissions_type[-st]\nIt must be one of: controversial, hot, new, random_rising, rising, top"
         )
 
 
@@ -56,7 +61,7 @@ def fetch_comments(submissionObj, reddit, comments_count):
 
 
 def cleanse_submissions(
-    cleanse_submission_columns, comments, readObjs, submission_columns
+    cleanse_submission_columns, comments, readObjs, submission_columns, clean_text
 ):
     submissions_df_dict = {col: [] for col in submission_columns}
     submissions_to_crawl = [
@@ -72,9 +77,17 @@ def cleanse_submissions(
         submissions_to_crawl = None
     data = []
     for link in submissions_df_dict["permalink"]:
-        data.append(f"{'https://www.reddit.com' + link}")
+        data.append(reddit_url + link)
     submissions_df_dict["permalink"] = data
-    cleanse_text(cleanse_submission_columns, submissions_df_dict)
+    data = []
+    for author in submissions_df_dict["author"]:
+        if hasattr(author, "name"):
+            data.append(reddit_user + author.name)
+        else:
+            data.append(author)
+    submissions_df_dict["author"] = data
+    if clean_text:
+        cleanse_text(cleanse_submission_columns, submissions_df_dict)
     return submissions_df_dict, submissions_to_crawl
 
 
@@ -83,6 +96,7 @@ def cleanse_comments(
     submission_comments,
     comment_columns,
     link_comments_columns,
+    clean_text,
 ):
     comments_df_dict = {col: [] for col in comment_columns}
     top_level_comments = [
@@ -100,23 +114,80 @@ def cleanse_comments(
         data = []
         if col == "permalink":
             for el in comments_df_dict[col]:
-                data.append(f"{'https://www.reddit.com' + el}")
+                data.append(reddit_url + el)
         elif col == "parent_id":
             for i, el in enumerate(comments_df_dict[col]):
                 if el.split("_")[1] != comments_df_dict["submission"][i]:
                     data.append(
-                        f"{'/'.join(comments_df_dict['permalink'][i].split('/')[:-2])+ '/' + el.split('_')[1]}"
+                        "/".join(comments_df_dict["permalink"][i].split("/")[:-2])
+                        + "/"
+                        + el.split("_")[1]
                     )
                 else:
                     data.append(
-                        f"{'/'.join(comments_df_dict['permalink'][i].split('/')[:-2])}"
+                        "/".join(comments_df_dict["permalink"][i].split("/")[:-2])
                     )
         elif col == "submission":
             for i, el in enumerate(comments_df_dict[col]):
-                data.append(
-                    f"{'/'.join(comments_df_dict['permalink'][i].split('/')[:-2])}"
-                )
+                data.append("/".join(comments_df_dict["permalink"][i].split("/")[:-2]))
+        elif col == "author":
+            for i, author in enumerate(comments_df_dict[col]):
+                if hasattr(author, "name"):
+                    data.append(reddit_user + author.name)
+                else:
+                    data.append(author)
         comments_df_dict[col] = data
-
-    cleanse_text(cleanse_comments_columns, comments_df_dict)
+    if clean_text:
+        cleanse_text(cleanse_comments_columns, comments_df_dict)
     return comments_df_dict
+
+
+def save_method(save_as=None, data=None):
+    if save_as["type"] == "csv":
+        data.to_csv(
+            save_as["file_name"],
+            index=save_as["index"],
+            index_label=save_as["index_label"],
+        )
+    elif save_as["type"] == "db":
+        columns = list(data.columns)
+        data["fetched_utc"] = data["fetched_utc"].apply(
+            lambda x: datetime.datetime.fromtimestamp(x)
+        )
+        data["created_utc"] = data["created_utc"].apply(
+            lambda x: datetime.datetime.fromtimestamp(x)
+        )
+        DSN = save_as["DSN"]
+        asyncio.get_event_loop().run_until_complete(
+            save_to_db(DSN, data.values, columns, save_as["table"])
+        )
+    return None
+
+
+async def save_to_db(DSN=None, values=None, columns=None, table=None):
+    conn = await asyncpg.connect(DSN)
+    try:
+        result = await conn.copy_records_to_table(
+            table, records=values, columns=columns
+        )
+        print("*" * 80)
+        print(result + " executed on " + table)
+    finally:
+        await conn.close()
+
+
+def init_db(DSN=None, statement=None):
+    asyncio.get_event_loop().run_until_complete(
+        create_db_tables(DSN=DSN, statement=statement)
+    )
+    return None
+
+
+async def create_db_tables(DSN=None, statement=None):
+    conn = await asyncpg.connect(DSN)
+    try:
+        result = await conn.execute(statement)
+        print(result)
+        print("*" * 80)
+    finally:
+        await conn.close()

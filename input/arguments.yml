@@ -1,0 +1,36 @@
+# These are the fields in submissions that will be saved
+submission_columns:
+  - permalink
+  - author
+  - created_utc
+  - title
+  - selftext
+  - score
+# These fields in submissions will be cleansed if saved as csv, for db they are saved directly
+cleanse_submission_columns:
+  - selftext
+  - title
+# These are the fields in commentss that will be saved
+comment_columns:
+  - permalink
+  - author
+  - created_utc
+  - score
+  - body
+  - parent_id
+  - submission
+# These fields in comments will be cleansed if saved as csv, for db they are saved directly
+cleanse_comments_columns:
+  - body
+link_comments_columns:
+  - permalink
+  - parent_id
+  - author
+  - submission
+db_tables:
+  comments: comments # Comments table name, should have columns matching comment_columns section
+  posts: posts # Posts table name, should have columns matching submission_columns section
+  init: db.sql # sql statements to create tables if dbwi mode is chosen
+output_file_names:
+  - submissions_
+  - comments_
